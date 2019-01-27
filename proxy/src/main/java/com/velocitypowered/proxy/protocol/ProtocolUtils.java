@@ -7,7 +7,6 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.util.GameProfile;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +18,7 @@ public enum ProtocolUtils {
 
   /**
    * Reads a Minecraft-style VarInt from the specified {@code buf}.
+   *
    * @param buf the buffer to read from
    * @return the decoded VarInt
    */
@@ -40,6 +40,7 @@ public enum ProtocolUtils {
 
   /**
    * Writes a Minecraft-style VarInt to the specified {@code buf}.
+   *
    * @param buf the buffer to read from
    * @param value the integer to write
    */
@@ -60,8 +61,9 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Reads a VarInt length-prefixed string from the {@code buf}, making sure to not go over
-   * {@code cap} size.
+   * Reads a VarInt length-prefixed string from the {@code buf}, making sure to not go over {@code
+   * cap} size.
+   *
    * @param buf the buffer to read from
    * @param cap the maximum size of the string, in UTF-8 character length
    * @return the decoded string
@@ -85,6 +87,7 @@ public enum ProtocolUtils {
 
   /**
    * Writes the specified {@code str} to the {@code buf} with a VarInt prefix.
+   *
    * @param buf the buffer to write to
    * @param str the string to write
    */
@@ -101,6 +104,7 @@ public enum ProtocolUtils {
   /**
    * Reads a VarInt length-prefixed byte array from the {@code buf}, making sure to not go over
    * {@code cap} size.
+   *
    * @param buf the buffer to read from
    * @param cap the maximum size of the string, in UTF-8 character length
    * @return the byte array
@@ -123,7 +127,66 @@ public enum ProtocolUtils {
   }
 
   /**
+   * Reads a VarShort length-prefixed byte array from the {@code buf}, making sure to not go over
+   * {@code cap} size.
+   *
+   * @param buf the buffer to read from
+   * @param cap the maximum size of the string, in UTF-8 character length
+   * @return the byte array
+   */
+  public static byte[] readByteArrayOneSeven(ByteBuf buf, int cap) {
+    int length = readVarShort(buf);
+    checkArgument(length >= 0, "Got a negative-length array (%s)", length);
+    checkArgument(length <= cap, "Bad array size (got %s, maximum is %s)", length, cap);
+    checkState(buf.isReadable(length),
+        "Trying to read an array that is too long (wanted %s, only have %s)", length,
+        buf.readableBytes());
+    byte[] array = new byte[length];
+    buf.readBytes(array);
+    return array;
+  }
+
+  public static void writeByteArrayOneSeven(ByteBuf buf, byte[] array) {
+    writeVarShort(buf, array.length);
+    buf.writeBytes(array);
+  }
+
+  /**
+   * Reads a Forge-style VarShort from the specified {@code buf}.
+   *
+   * @param buf the buffer to read from
+   * @return the decoded VarShort
+   */
+  public static int readVarShort(ByteBuf buf) {
+    int value = buf.readShort();
+    if (value < 0) {
+      value &= 0x7FFF;
+      value |= buf.readUnsignedByte() << 15;
+    }
+    return value;
+  }
+
+  /**
+   * Writes a Forge-style VarShort to the specified {@code buf}.
+   *
+   * @param buf the buffer to read from
+   * @param value the VarShort to write
+   */
+  public static void writeVarShort(ByteBuf buf, int value) {
+    int first = value & 0x7FFF;
+    value >>= 15;
+    if (value != 0) {
+      first |= 0x8000;
+    }
+    buf.writeShort(first);
+    if (value != 0) {
+      buf.writeByte(value);
+    }
+  }
+
+  /**
    * Reads an VarInt-prefixed array of VarInt integers from the {@code buf}.
+   *
    * @param buf the buffer to read from
    * @return an array of integers
    */
@@ -139,6 +202,7 @@ public enum ProtocolUtils {
 
   /**
    * Reads an UUID from the {@code buf}.
+   *
    * @param buf the buffer to read from
    * @return the UUID from the buffer
    */
@@ -155,6 +219,7 @@ public enum ProtocolUtils {
 
   /**
    * Writes a list of {@link com.velocitypowered.api.util.GameProfile.Property} to the buffer.
+   *
    * @param buf the buffer to write to
    * @param properties the properties to serialize
    */
@@ -175,6 +240,7 @@ public enum ProtocolUtils {
 
   /**
    * Reads a list of {@link com.velocitypowered.api.util.GameProfile.Property} from the buffer.
+   *
    * @param buf the buffer to read from
    * @return the read properties
    */
@@ -199,7 +265,7 @@ public enum ProtocolUtils {
     CLIENTBOUND;
 
     public StateRegistry.PacketRegistry.ProtocolRegistry getProtocolRegistry(StateRegistry state,
-                                                                    ProtocolVersion version) {
+        ProtocolVersion version) {
       return (this == SERVERBOUND ? state.serverbound : state.clientbound)
           .getProtocolRegistry(version);
     }

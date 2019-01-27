@@ -29,6 +29,8 @@ public class KeepAlive implements MinecraftPacket {
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     if (version.compareTo(ProtocolVersion.MINECRAFT_1_12_2) >= 0) {
       randomId = buf.readLong();
+    } else if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      randomId = buf.readInt();
     } else {
       randomId = ProtocolUtils.readVarInt(buf);
     }
@@ -38,6 +40,8 @@ public class KeepAlive implements MinecraftPacket {
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     if (version.compareTo(ProtocolVersion.MINECRAFT_1_12_2) >= 0) {
       buf.writeLong(randomId);
+    } else if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      buf.writeInt((int) randomId);
     } else {
       ProtocolUtils.writeVarInt(buf, (int) randomId);
     }

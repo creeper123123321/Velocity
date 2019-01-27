@@ -42,15 +42,25 @@ public class EncryptionRequest implements MinecraftPacket {
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     this.serverId = ProtocolUtils.readString(buf, 20);
-    publicKey = ProtocolUtils.readByteArray(buf, 256);
-    verifyToken = ProtocolUtils.readByteArray(buf, 16);
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      publicKey = ProtocolUtils.readByteArrayOneSeven(buf, 256);
+      verifyToken = ProtocolUtils.readByteArrayOneSeven(buf, 16);
+    } else {
+      publicKey = ProtocolUtils.readByteArray(buf, 256);
+      verifyToken = ProtocolUtils.readByteArray(buf, 16);
+    }
   }
 
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     ProtocolUtils.writeString(buf, this.serverId);
-    ProtocolUtils.writeByteArray(buf, publicKey);
-    ProtocolUtils.writeByteArray(buf, verifyToken);
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      ProtocolUtils.writeByteArrayOneSeven(buf, publicKey);
+      ProtocolUtils.writeByteArrayOneSeven(buf, verifyToken);
+    } else {
+      ProtocolUtils.writeByteArray(buf, publicKey);
+      ProtocolUtils.writeByteArray(buf, verifyToken);
+    }
   }
 
   @Override

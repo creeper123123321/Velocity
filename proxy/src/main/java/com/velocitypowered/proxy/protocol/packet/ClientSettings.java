@@ -15,6 +15,7 @@ public class ClientSettings implements MinecraftPacket {
   private boolean chatColors;
   private short skinParts;
   private int mainHand;
+  private byte difficulty;
 
   public ClientSettings() {
   }
@@ -80,28 +81,41 @@ public class ClientSettings implements MinecraftPacket {
     this.mainHand = mainHand;
   }
 
+  public void setDifficulty(byte difficulty) {
+    this.difficulty = difficulty;
+  }
+
+  public byte getDifficulty() {
+    return difficulty;
+  }
+
   @Override
   public String toString() {
-    return "ClientSettings{"
-        + "locale='" + locale + '\''
-        + ", viewDistance=" + viewDistance
-        + ", chatVisibility=" + chatVisibility
-        + ", chatColors=" + chatColors
-        + ", skinParts=" + skinParts
-        + ", mainHand=" + mainHand
-        + '}';
+    return "ClientSettings{" +
+        "locale='" + locale + '\'' +
+        ", viewDistance=" + viewDistance +
+        ", chatVisibility=" + chatVisibility +
+        ", chatColors=" + chatColors +
+        ", skinParts=" + skinParts +
+        ", mainHand=" + mainHand +
+        ", difficulty=" + difficulty +
+        '}';
   }
 
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     this.locale = ProtocolUtils.readString(buf, 16);
     this.viewDistance = buf.readByte();
-    this.chatVisibility = ProtocolUtils.readVarInt(buf);
+    this.chatVisibility = version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0
+        ? buf.readUnsignedByte() : ProtocolUtils.readVarInt(buf);
     this.chatColors = buf.readBoolean();
     this.skinParts = buf.readUnsignedByte();
 
     if (version.compareTo(ProtocolVersion.MINECRAFT_1_9) >= 0) {
       this.mainHand = ProtocolUtils.readVarInt(buf);
+    }
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      difficulty = buf.readByte();
     }
   }
 
@@ -112,12 +126,19 @@ public class ClientSettings implements MinecraftPacket {
     }
     ProtocolUtils.writeString(buf, locale);
     buf.writeByte(viewDistance);
-    ProtocolUtils.writeVarInt(buf, chatVisibility);
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      buf.writeByte(chatVisibility);
+    } else {
+      ProtocolUtils.writeVarInt(buf, chatVisibility);
+    }
     buf.writeBoolean(chatColors);
     buf.writeByte(skinParts);
 
     if (version.compareTo(ProtocolVersion.MINECRAFT_1_9) >= 0) {
       ProtocolUtils.writeVarInt(buf, mainHand);
+    }
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      buf.writeByte(difficulty);
     }
   }
 

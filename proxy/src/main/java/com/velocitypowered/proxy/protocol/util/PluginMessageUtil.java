@@ -3,6 +3,7 @@ package com.velocitypowered.proxy.protocol.util;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -30,6 +31,7 @@ public class PluginMessageUtil {
 
   /**
    * Determines whether or not this is a brand plugin message. This is shown on the client.
+   *
    * @param message the plugin message
    * @return whether or not this is a brand plugin message
    */
@@ -41,6 +43,7 @@ public class PluginMessageUtil {
 
   /**
    * Determines whether or not this plugin message is being used to register plugin channels.
+   *
    * @param message the plugin message
    * @return whether we are registering plugin channels or not
    */
@@ -52,6 +55,7 @@ public class PluginMessageUtil {
 
   /**
    * Determines whether or not this plugin message is being used to unregister plugin channels.
+   *
    * @param message the plugin message
    * @return whether we are unregistering plugin channels or not
    */
@@ -63,26 +67,28 @@ public class PluginMessageUtil {
 
   /**
    * Fetches all the channels in a register or unregister plugin message.
+   *
    * @param message the message to get the channels from
    * @return the channels, as an immutable list
    */
   public static List<String> getChannels(PluginMessage message) {
     checkNotNull(message, "message");
     checkArgument(isRegister(message) || isUnregister(message), "Unknown channel type %s",
-            message.getChannel());
+        message.getChannel());
     String channels = new String(message.getData(), StandardCharsets.UTF_8);
     return ImmutableList.copyOf(channels.split("\0"));
   }
 
   /**
    * Constructs a channel (un)register packet.
+   *
    * @param protocolVersion the client/server's protocol version
    * @param channels the channels to register
    * @return the plugin message to send
    */
 
   public static PluginMessage constructChannelsPacket(ProtocolVersion protocolVersion,
-                                                      Collection<String> channels) {
+      Collection<String> channels) {
     Preconditions.checkNotNull(channels, "channels");
     String channelName = protocolVersion.compareTo(ProtocolVersion.MINECRAFT_1_13) >= 0
         ? REGISTER_CHANNEL : REGISTER_CHANNEL_LEGACY;
@@ -94,11 +100,13 @@ public class PluginMessageUtil {
 
   /**
    * Rewrites the brand message to indicate the presence of Velocity.
+   *
    * @param message the plugin message
    * @param version the proxy version
    * @return the rewritten plugin message
    */
-  public static PluginMessage rewriteMinecraftBrand(PluginMessage message, ProxyVersion version) {
+  public static PluginMessage rewriteMinecraftBrand(PluginMessage message, ProxyVersion version,
+      ProtocolVersion protocolVersion) {
     checkNotNull(message, "message");
     checkNotNull(version, "version");
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
@@ -106,14 +114,19 @@ public class PluginMessageUtil {
     String toAppend = " (" + version.getName() + ")";
 
     byte[] rewrittenData;
-    ByteBuf rewrittenBuf = Unpooled.buffer();
-    try {
-      String currentBrand = ProtocolUtils.readString(Unpooled.wrappedBuffer(message.getData()));
-      ProtocolUtils.writeString(rewrittenBuf, currentBrand + toAppend);
-      rewrittenData = new byte[rewrittenBuf.readableBytes()];
-      rewrittenBuf.readBytes(rewrittenData);
-    } finally {
-      rewrittenBuf.release();
+    if (protocolVersion.compareTo(ProtocolVersion.MINECRAFT_1_7_6) > 0) {
+      ByteBuf rewrittenBuf = Unpooled.buffer();
+      try {
+        String currentBrand = ProtocolUtils.readString(Unpooled.wrappedBuffer(message.getData()));
+        ProtocolUtils.writeString(rewrittenBuf, currentBrand + toAppend);
+        rewrittenData = new byte[rewrittenBuf.readableBytes()];
+        rewrittenBuf.readBytes(rewrittenData);
+      } finally {
+        rewrittenBuf.release();
+      }
+    } else {
+      rewrittenData = (new String(message.getData(), Charsets.UTF_8) + toAppend)
+          .getBytes(Charsets.UTF_8);
     }
 
     PluginMessage newMsg = new PluginMessage();

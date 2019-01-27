@@ -101,7 +101,9 @@ public class JoinGame implements MinecraftPacket {
     this.difficulty = buf.readUnsignedByte();
     this.maxPlayers = buf.readUnsignedByte();
     this.levelType = ProtocolUtils.readString(buf, 16);
-    this.reducedDebugInfo = buf.readBoolean();
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) > 0) {
+      this.reducedDebugInfo = buf.readBoolean();
+    }
   }
 
   @Override
@@ -119,7 +121,9 @@ public class JoinGame implements MinecraftPacket {
       throw new IllegalStateException("No level type specified.");
     }
     ProtocolUtils.writeString(buf, levelType);
-    buf.writeBoolean(reducedDebugInfo);
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) > 0) {
+      buf.writeBoolean(reducedDebugInfo);
+    }
   }
 
   @Override

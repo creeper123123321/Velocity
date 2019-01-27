@@ -45,7 +45,13 @@ public class ServerLoginSuccess implements MinecraftPacket {
 
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
-    uuid = UUID.fromString(ProtocolUtils.readString(buf, 36));
+    String stringUuid = ProtocolUtils.readString(buf, 36);
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_2) <= 0) {
+      stringUuid = stringUuid.replaceAll(
+          "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})",
+          "$1-$2-$3-$4-$5");
+    }
+    uuid = UUID.fromString(stringUuid);
     username = ProtocolUtils.readString(buf, 16);
   }
 

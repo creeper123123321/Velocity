@@ -248,6 +248,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player {
     Preconditions.checkNotNull(title, "title");
 
     ProtocolVersion protocolVersion = minecraftConnection.getProtocolVersion();
+    if (protocolVersion.compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      return;
+    }
     if (title.equals(Titles.reset())) {
       minecraftConnection.write(TitlePacket.resetForProtocolVersion(protocolVersion));
     } else if (title.equals(Titles.hide())) {
@@ -300,6 +303,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player {
 
   /**
    * Handles unexpected disconnects.
+   *
    * @param server the server we disconnected from
    * @param throwable the exception
    */
@@ -330,6 +334,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player {
 
   /**
    * Handles unexpected disconnects.
+   *
    * @param server the server we disconnected from
    * @param disconnect the disconnect packet
    */
@@ -563,9 +568,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player {
   }
 
   /**
-   * Sends a {@link KeepAlive} packet to the player with a random ID.
-   * The response will be ignored by Velocity as it will not match the
-   * ID last sent by the server.
+   * Sends a {@link KeepAlive} packet to the player with a random ID. The response will be ignored
+   * by Velocity as it will not match the ID last sent by the server.
    */
   public void sendKeepAlive() {
     if (minecraftConnection.getState() == StateRegistry.PLAY) {
@@ -576,9 +580,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player {
   }
 
   /**
-   * Gets the current "phase" of the connection, mostly used for tracking
-   * modded negotiation for legacy forge servers and provides methods
-   * for performing phase specific actions.
+   * Gets the current "phase" of the connection, mostly used for tracking modded negotiation for
+   * legacy forge servers and provides methods for performing phase specific actions.
    *
    * @return The {@link ClientConnectionPhase}
    */

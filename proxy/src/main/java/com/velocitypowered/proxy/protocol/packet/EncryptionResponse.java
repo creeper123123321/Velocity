@@ -40,14 +40,24 @@ public class EncryptionResponse implements MinecraftPacket {
 
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
-    this.sharedSecret = ProtocolUtils.readByteArray(buf, 256);
-    this.verifyToken = ProtocolUtils.readByteArray(buf, 128);
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) > 0) {
+      this.sharedSecret = ProtocolUtils.readByteArray(buf, 256);
+      this.verifyToken = ProtocolUtils.readByteArray(buf, 128);
+    } else {
+      this.sharedSecret = ProtocolUtils.readByteArrayOneSeven(buf, 256);
+      this.verifyToken = ProtocolUtils.readByteArrayOneSeven(buf, 128);
+    }
   }
 
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
-    ProtocolUtils.writeByteArray(buf, sharedSecret);
-    ProtocolUtils.writeByteArray(buf, verifyToken);
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_6) > 0) {
+      ProtocolUtils.writeByteArray(buf, sharedSecret);
+      ProtocolUtils.writeByteArray(buf, verifyToken);
+    } else {
+      ProtocolUtils.writeByteArrayOneSeven(buf, sharedSecret);
+      ProtocolUtils.writeByteArrayOneSeven(buf, verifyToken);
+    }
   }
 
   @Override

@@ -1,6 +1,7 @@
 package com.velocitypowered.proxy.connection.client;
 
 import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_13;
+import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_7_6;
 
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
@@ -226,7 +227,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         knownChannels.removeAll(channels);
         backendConn.write(packet);
       } else if (PluginMessageUtil.isMcBrand(packet)) {
-        backendConn.write(PluginMessageUtil.rewriteMinecraftBrand(packet, server.getVersion()));
+        backendConn.write(PluginMessageUtil.rewriteMinecraftBrand(packet, server.getVersion(),
+            serverConn.getPlayer().getProtocolVersion()));
       } else if (!player.getPhase().handle(player, this, packet)) {
         if (!player.getPhase().consideredComplete() || !serverConn.getPhase()
             .consideredComplete()) {
@@ -389,8 +391,10 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
 
     // Clear any title from the previous server.
-    player.getMinecraftConnection()
-        .delayedWrite(TitlePacket.resetForProtocolVersion(player.getProtocolVersion()));
+    if (player.getProtocolVersion().compareTo(MINECRAFT_1_7_6) > 0) {
+      player.getMinecraftConnection()
+          .delayedWrite(TitlePacket.resetForProtocolVersion(player.getProtocolVersion()));
+    }
 
     // Flush everything
     player.getMinecraftConnection().flush();
