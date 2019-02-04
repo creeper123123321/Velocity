@@ -9,12 +9,14 @@ import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 import net.kyori.text.Component;
 import net.kyori.text.serializer.ComponentSerializers;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -80,8 +82,13 @@ public class PlayerListItem implements MinecraftPacket {
       }
     } else {
       String name = ProtocolUtils.readString(buf);
-      UUID dummyUuid = ProtocolUtils.readUuid(
-          Unpooled.wrappedBuffer(Arrays.copyOf(name.getBytes(Charsets.UTF_8), 16)));
+      // Compress the name and create an uuid (not always a String with #length() <= 16 will fit in a byte[16])
+      Deflater deflater = new Deflater(Deflater.BEST_COMPRESSION, true);
+      deflater.setInput(name.getBytes(Charsets.UTF_8));
+      deflater.finish();
+      byte[] buffer = new byte[16];
+      deflater.deflate(buffer);
+      UUID dummyUuid = ProtocolUtils.readUuid(Unpooled.wrappedBuffer(buffer));
       boolean add = buf.readBoolean();
       short ping = buf.readShort();
       Item item = new Item(dummyUuid);
@@ -142,7 +149,20 @@ public class PlayerListItem implements MinecraftPacket {
     } else {
       ByteBuf dummyUuidBuf = Unpooled.buffer();
       ProtocolUtils.writeUuid(dummyUuidBuf, items.get(0).getUuid());
-      String name = dummyUuidBuf.toString(0, 16, Charsets.UTF_8);
+      byte[] bytes = ByteBufUtil.getBytes(dummyUuidBuf);
+      Inflater inflater = new Inflater(true);
+      inflater.setInput(bytes);
+
+      byte[] out = new byte[16 * 3];
+
+      int count;
+      try {
+        count = inflater.inflate(out);
+      } catch (DataFormatException e) {
+        throw new RuntimeException(e);
+      }
+
+      String name = new String(out, 0, count, Charsets.UTF_8);
       ProtocolUtils.writeString(buf, name);
       for (Item item : items) {
         switch (action) {
