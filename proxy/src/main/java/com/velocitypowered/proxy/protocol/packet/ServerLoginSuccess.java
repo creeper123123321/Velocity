@@ -60,7 +60,11 @@ public class ServerLoginSuccess implements MinecraftPacket {
     if (uuid == null) {
       throw new IllegalStateException("No UUID specified!");
     }
-    ProtocolUtils.writeString(buf, uuid.toString());
+    if (version.compareTo(ProtocolVersion.MINECRAFT_1_7_2) <= 0) {
+      ProtocolUtils.writeString(buf, uuid.toString().replace("-", ""));
+    } else {
+      ProtocolUtils.writeString(buf, uuid.toString());
+    }
     if (username == null) {
       throw new IllegalStateException("No username specified!");
     }
