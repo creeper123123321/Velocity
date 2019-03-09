@@ -31,6 +31,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
+import com.velocitypowered.proxy.connection.forge.legacy.LegacyForgeHandshakeClientPhase;
 import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -97,7 +98,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player {
     this.minecraftConnection = minecraftConnection;
     this.virtualHost = virtualHost;
     this.permissionFunction = PermissionFunction.ALWAYS_UNDEFINED;
-    this.connectionPhase = minecraftConnection.getType().getInitialClientPhase();
+    if (minecraftConnection.getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_7_6) <= 0) {
+      this.connectionPhase = LegacyForgeHandshakeClientPhase.NOT_STARTED;
+    } else {
+      this.connectionPhase = minecraftConnection.getType().getInitialClientPhase();
+    }
   }
 
   @Override
